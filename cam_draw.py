@@ -2,12 +2,13 @@ import os
 import sys
 import time
 import logging
+import argparse
 import urllib.request
 import traceback
 from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Tuple, List, Optional, Dict, Any
+from typing import Tuple, List, Optional, Dict, Any, Union
 
 import cv2
 import numpy as np
@@ -27,12 +28,13 @@ os.environ.setdefault("OPENCV_LOG_LEVEL", "ERROR")
 ColorTuple = Tuple[int, int, int]
 PaletteType = List[Tuple[str, ColorTuple]]
 Point2D = Tuple[int, int]
+CameraSource = Union[int, str]
 
-#can be different, test on your wbcam
 WINDOW_W: int = 960
 WINDOW_H: int = 540
 DETECT_W: int = 320
 TARGET_FPS: int = 30
+DEFAULT_CAM_INDEX: int = 0
 
 SMOOTH_FACTOR: float = 0.36 
 CAM_CONTRAST: float = 0.82      
@@ -105,8 +107,22 @@ def create_detector(model_path: Path) -> vision.HandLandmarker:
     )
     return vision.HandLandmarker.create_from_options(options)
 
-def open_camera(cam_index: int, width: int, height: int, fps: int) -> Tuple[cv2.VideoCapture, int, int]:
-    cap = cv2.VideoCapture(cam_index)
+def parse_camera_source(value: str) -> CameraSource:
+    return int(value) if value.isdigit() else value
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Hand-tracked virtual whiteboard")
+    parser.add_argument(
+        "-c",
+        "--camera",
+        type=parse_camera_source,
+        default=DEFAULT_CAM_INDEX,
+        help="camera index or device path, for example 0 or /dev/video0",
+    )
+    return parser.parse_args()
+
+def open_camera(cam_source: CameraSource, width: int, height: int, fps: int) -> Tuple[cv2.VideoCapture, int, int]:
+    cap = cv2.VideoCapture(cam_source)
     cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG")) 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
@@ -114,10 +130,10 @@ def open_camera(cam_index: int, width: int, height: int, fps: int) -> Tuple[cv2.
 
     ret, frame = cap.read()
     if not ret:
-        raise RuntimeError(f"Cam {cam_index} is not responding.")
+        raise RuntimeError(f"Cam {cam_source} is not responding.")
         
     real_h, real_w = frame.shape[:2]
-    logger.info(f"Cam is on. Res: {real_w}x{real_h} @ {fps}FPS")
+    logger.info(f"Cam {cam_source} is on. Res: {real_w}x{real_h} @ {fps}FPS")
     return cap, real_h, real_w
 
 def get_distance(a: Point2D, b: Point2D) -> float:
@@ -233,10 +249,11 @@ def handle_key(key: int, state: WhiteboardState, flags: Dict[str, bool]) -> bool
     return True
 
 def main() -> None:
+    args = parse_args()
     ensure_model(MODEL_URL, MODEL_PATH)
     detector = create_detector(MODEL_PATH)
     
-    cap, real_h, real_w = open_camera(0, WINDOW_W, WINDOW_H, TARGET_FPS)
+    cap, real_h, real_w = open_camera(args.camera, WINDOW_W, WINDOW_H, TARGET_FPS)
     
     state = WhiteboardState(WINDOW_W, WINDOW_H)
     flags: Dict[str, bool] = {"hud": True, "help": False, "debug": False, "landmarks": False}
@@ -299,3 +316,4 @@ if __name__ == "__main__":
         logger.critical(f"ERROR {e}")
         traceback.print_exc()
         sys.exit(1)
+
