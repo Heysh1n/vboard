@@ -1,4 +1,4 @@
-# VBoard: Hand-Tracked Virtual Whiteboard
+# VBoard: Hand-Tracked Virtual Whiteboard (THE FORK)
 
 A highly optimized, zero-latency virtual whiteboard using OpenCV and MediaPipe. 
 Draw in the air with your index finger, erase with two fingers. Built with a focus on clean architecture, stable FPS, and real-time performance.
@@ -16,6 +16,20 @@ Then run:
 ```bash
 python cam_draw.py
 ```
+
+To use another webcam:
+
+```bash
+python cam_draw.py --camera 1
+```
+
+You can also pass a Linux video device path:
+
+```bash
+python cam_draw.py --camera /dev/video0
+```
+
+If your shell shows `/dev/video0%`, the `%` is only a file-type marker from completion. Do not type it as part of the path.
 
 If you use Conda:
 
