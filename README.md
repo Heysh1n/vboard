@@ -65,3 +65,7 @@ some of this was deleted and cooming soon
 ## Notes
 
 Good lighting matters. Weak webcams may drop FPS in dark rooms because of auto exposure. Keep the hand near the center of the frame for best tracking.
+
+<p align="center">
+  Made with ❤️ by Heysh1n (Made the fork)
+</p>
